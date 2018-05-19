@@ -1,0 +1,173 @@
+#include <SparkFun_APDS9960.h>
+
+#define ENA 5
+#define ENB 6
+#define TRIG 7
+#define IN1 8
+#define IN2 9
+#define IN3 10
+#define IN4 11
+#define ECHO 12
+#define LLINE A1
+#define RLINE A2
+#define CLINE A0
+
+int flag2 = 0, flag, ifoff;
+unsigned int sonarDist;
+unsigned long prevMillis;
+const long interval = 50;
+
+void setup() {
+  pinMode(LLINE, INPUT);
+  pinMode(CLINE, INPUT);
+  pinMode(RLINE, INPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(ECHO, INPUT);
+  pinMode(TRIG, OUTPUT);
+  Serial.begin(9600);
+  flag = 0;
+  ifoff = 0;
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+  sonarDist = sonar_mm();
+  /*if ((digitalRead(CLINE) == LOW && digitalRead(LLINE) == LOW && digitalRead(RLINE) == LOW) && flag2 == 0) {
+    prevMillis = currentMillis;
+    flag2 = 1;
+  } else if ((digitalRead(CLINE) == LOW && digitalRead(LLINE) == LOW && digitalRead(RLINE) == LOW) && (currentMillis - prevMillis >= interval)) {
+    while (digitalRead(CLINE) == LOW && digitalRead(LLINE) == LOW && digitalRead(RLINE) == LOW) {
+      straight();
+    }
+    flag2 = 0;
+  }*/
+
+  lineFollow();
+  //Stop while distance to ultrasonic sensor less than 100 mm
+  while (sonarDist <= 100) {
+    analogWrite(ENA, 0);
+    analogWrite(ENB, 0);
+    flag = 1;
+    sonarDist = sonar_mm();
+  }
+}
+
+//Getting distance from ultrasonic sensor in mm
+unsigned int sonar_mm(void) {
+  long duration = 0;
+  const float speed_sound = 340.29;// m/s
+  // Read in a distance from the ultrasonic distance sensor:
+  // The PING))) is triggered by a HIGH pulse of 10 microseconds.
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+  //read length of time pulse
+  duration = pulseIn(ECHO, HIGH, 3e4);//third argument makes max range 2m ish
+  // convert the time into a distance
+  return (unsigned int)(0.5 * duration * 1e-6 * speed_sound * 1e3);
+}
+
+// Basic Line Follower
+void lineFollow() {
+  if (flag == 0) {
+    analogWrite(ENA, 0);
+    analogWrite(ENB, 0);
+    flag = 1;
+  }
+  if (digitalRead(CLINE) == HIGH ) {
+    digitalWrite(IN1, LOW);   //IN1
+    digitalWrite(IN2, HIGH);  //IN2
+    analogWrite(ENA, 100);     //Power
+    digitalWrite(IN3, LOW);  //IN3
+    digitalWrite(IN4, HIGH); //IN4
+    analogWrite(ENB, 100);
+    delay(50);
+    digitalWrite(IN1, LOW);   //IN1
+    digitalWrite(IN2, HIGH);  //IN2
+    analogWrite(ENA, 0);     //Power
+    digitalWrite(IN3, LOW);  //IN3
+    digitalWrite(IN4, HIGH); //IN4
+    analogWrite(ENB, 0);
+    delay(100);
+  } else if (digitalRead(RLINE) == HIGH) {
+    digitalWrite(IN1, LOW);   //IN1
+    digitalWrite(IN2, HIGH);  //IN2
+    analogWrite(ENA, 120);     //Power
+    digitalWrite(IN3, LOW);  //IN3
+    digitalWrite(IN4, HIGH); //IN4
+    analogWrite(ENB, 0);
+    delay(50);
+    digitalWrite(IN1, LOW);   //IN1
+    digitalWrite(IN2, HIGH);  //IN2
+    analogWrite(ENA, 0);     //Power
+    digitalWrite(IN3, LOW);  //IN3
+    digitalWrite(IN4, HIGH); //IN4
+    analogWrite(ENB, 0);
+    delay(100);
+    ifoff = 2;
+  } else if (digitalRead(LLINE) == HIGH ) {
+    digitalWrite(IN1, LOW);   //IN1
+    digitalWrite(IN2, HIGH);  //IN2
+    analogWrite(ENA, 0);     //Power
+    digitalWrite(IN3, LOW);  //IN3
+    digitalWrite(IN4, HIGH); //IN4
+    analogWrite(ENB, 120);
+    delay(50);
+    digitalWrite(IN1, LOW);   //IN1
+    digitalWrite(IN2, HIGH);  //IN2
+    analogWrite(ENA, 0);     //Power
+    digitalWrite(IN3, LOW);  //IN3
+    digitalWrite(IN4, HIGH); //IN4
+    analogWrite(ENB, 0);
+    delay(100);
+    ifoff = 3;
+  } else {
+    if (sonarDist > 350 && sonarDist < 400){
+      while (sonarDist >= 100){
+      sonarDist = sonar_mm();
+      straight();
+      }
+    }
+    if (ifoff == 2) {
+      digitalWrite(IN1, LOW);   //IN1
+      digitalWrite(IN2, HIGH);  //IN2
+      analogWrite(ENA, 0);     //Power
+      digitalWrite(IN3, LOW);  //IN3
+      digitalWrite(IN4, HIGH); //IN4
+      analogWrite(ENB, 120);
+      delay(50);
+      digitalWrite(IN1, LOW);   //IN1
+      digitalWrite(IN2, HIGH);  //IN2
+      analogWrite(ENA, 0);     //Power
+      digitalWrite(IN3, LOW);  //IN3
+      digitalWrite(IN4, HIGH); //IN4
+      analogWrite(ENB, 0);
+      delay(100);
+    } else if (ifoff == 3) {
+      digitalWrite(IN1, LOW);   //IN1
+      digitalWrite(IN2, HIGH);  //IN2
+      analogWrite(ENA, 120);     //Power
+      digitalWrite(IN3, LOW);  //IN3
+      digitalWrite(IN4, HIGH); //IN4
+      analogWrite(ENB, 0);
+      delay(50);
+      digitalWrite(IN1, LOW);   //IN1
+      digitalWrite(IN2, HIGH);  //IN2
+      analogWrite(ENA, 0);     //Power
+      digitalWrite(IN3, LOW);  //IN3
+      digitalWrite(IN4, HIGH); //IN4
+      analogWrite(ENB, 0);
+      delay(100);
+    }
+  }
+}
+
+void straight() {
+  analogWrite(ENA, 60);
+  analogWrite(ENB, 60);
+}
